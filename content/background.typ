@@ -14,7 +14,7 @@ sous-système concerné. #lorem(60)
 
 #figure(
   placement: auto,
-  image("../figures/kernel-layers.svg", width: 100%),
+  image("../figures/kernel-layers.svg", width: 90%),
   caption: [Couches traversées par une application, de l'espace utilisateur au
     matériel.],
 ) <fig:layers>
@@ -49,8 +49,7 @@ Le trajet d'un paquet entrant est donné figure @fig:pipeline : la carte
 remis au socket. #lorem(45)
 
 #figure(
-  placement: auto,
-  image("../figures/pipeline.svg", width: 100%),
+  image("../figures/pipeline.svg", width: 90%),
   caption: [Chemin d'un paquet entrant, de la carte réseau à l'application.],
 ) <fig:pipeline>
 
@@ -63,7 +62,6 @@ regroupement et des notes latérales : les deux premiers mots forment l'en-tê
 lu par le pilote, les deux suivants l'adresse et la longueur du tampon.
 
 #figure(
-  placement: auto,
   box(width: 100%, bytefield(
     bpr: 32,
     bitheader("bytes", text(size: 6pt)[0], text(size: 6pt)[8],

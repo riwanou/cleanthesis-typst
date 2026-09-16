@@ -48,7 +48,7 @@ _A_ est préemptée deux fois ; la tâche _C_ migre de CPU 1 vers CPU 0.
 
 #figure(
   placement: auto,
-  wide(image("../figures/scheduler-timeline.svg", width: 100%), width: 100%),
+  wide(image("../figures/scheduler-timeline.svg", width: 90%), width: 95%),
   caption: [Trace d'ordonnancement sur deux cœurs. Chaque bloc est un quantum.],
 ) <fig:timeline>
 
