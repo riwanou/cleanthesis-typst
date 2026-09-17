@@ -113,6 +113,16 @@
   heading-number((if ch.len() > 0 { ch.first() } else { 0 },), ct-appendix.get())
 }
 
+// A float reports its anchor, its caption the real page (typst/typst#4359).
+#let figure-loc(loc, kind) = {
+  let figs = query(figure.where(kind: kind))
+  let caps = query(figure.caption).filter(c => c.kind == kind)
+  let i = figs.position(f => f.location() == loc)
+  let pg = if i == none or i >= caps.len() { loc.page() } else { caps.at(i).location().page() }
+  let tops = query(<ct-page-top>)
+  if pg <= tops.len() { tops.at(pg - 1).location() } else { loc }
+}
+
 #let hang-left(body) = context box(width: 0pt, move(dx: -measure(body).width, body))
 
 // --- Footer -----------------------------------------------------------------
@@ -264,6 +274,7 @@
              top: margin-top, bottom: margin-bottom),
     binding: left, footer-descent: 0pt, footer: make-footer(),
     header: anchor(), header-ascent: 0pt,
+    background: place(top, [#metadata(none)<ct-page-top>]),
   )
 
   set text(font: font-serif, size: sz.normal, lang: "fr",
@@ -350,11 +361,19 @@
   set ref(supplement: none)
   show ref: it => context {
     let el = it.element
-    if el != none and is-part(el) {
-      link(el.location(), text(fill: colors.main, numbering("I", part-index(el.location()))))
-    } else {
-      text(fill: colors.main, it)
+    if el == none { return text(fill: colors.main, it) }
+    if is-part(el) {
+      return link(el.location(), text(fill: colors.main,
+                                      numbering("I", part-index(el.location()))))
     }
+    if el.func() == figure {
+      let loc = el.location()
+      let ch = counter(heading).at(loc).first()
+      let n = counter(figure.where(kind: el.kind)).at(loc).first()
+      return link(figure-loc(loc, el.kind),
+                  text(fill: colors.main)[#heading-number((ch,), ct-appendix.at(loc)).#n])
+    }
+    text(fill: colors.main, it)
   }
   show cite: it => text(fill: colors.main, it)
 
@@ -450,7 +469,7 @@
   let ch = counter(heading).at(loc).first()
   let chap = heading-number((ch,), ct-appendix.at(loc))
   let n = counter(figure.where(kind: kind)).at(loc).first()
-  link(parent, text(fill: colors.main)[#chap.#n#letter])
+  link(figure-loc(loc, kind), text(fill: colors.main)[#chap.#n#letter])
 }
 
 #let gls(key, plural: false) = {
@@ -525,8 +544,9 @@
     // Counters reset per chapter, so n == 1 marks a new chapter.
     let n = counter(figure.where(kind: kind)).at(loc).first()
     let gap = (if n == 1 { 1.31 } else { 0.52 }) * leading-unit
-    link(loc, outline-line([#ch.#n], it.body(), it.page(),
-                           numwidth: toc-numwidths.at(1), gap: gap))
+    let dest = figure-loc(loc, kind)
+    link(dest, outline-line([#ch.#n], it.body(), [#counter(page).at(dest).first()],
+                            numwidth: toc-numwidths.at(1), gap: gap))
   }
   outline(title: none, target: figure.where(kind: kind))
 }
@@ -554,12 +574,11 @@
 
 // --- Bibliography -----------------------------------------------------------
 
-// bib/alphanumeric.csl wraps the citation key in these; Typst fills them in.
-#let label-marker = regex("\u{27e8}[^\u{27e9}]+\u{27e9}")
-
+// bib/alphanumeric.csl brackets two values; these pick them back out.
+#let label-marker = regex("\u{27ea}[^\u{27eb}]+\u{27eb}")
 #let cite-marker = regex("\u{27e6}[^\u{27e7}]+\u{27e7}")
 
-#let marker-key(m) = m.text.trim(regex("[\u{27e6}-\u{27e9}]"))
+#let marker-text(m) = m.text.trim(regex("[\u{27e6}-\u{27eb}]"))
 
 // Webpages list: same style plus biblatex's "@" label prefix.
 #let web-csl = bytes(read("bib/alphanumeric.csl").replace(
@@ -587,27 +606,32 @@
   }).join(", "))]
 }
 
-#let thesis-bibliography(path, web: none) = {
-  set text(size: sz.small)
+// Typst pins the CSL hanging indent to 1.5em, so the block shifts to widen it
+// to `indent` — the label column, which the label is then drawn back into.
+#let bib-hang = 1.5em
+
+#let bib-entries(indent, body) = pad(left: indent - bib-hang, {
   show bibliography: it => {
     set par(leading: 0.55em, spacing: 1.05 * leading-unit)
     show link: set text(font: font-mono)
     show regex("url:"): text(size: 0.8em)[URL] + ":"
-    show label-marker: m => cite(label(marker-key(m)))
-    show cite-marker: m => context {
-      let key = marker-key(m)
-      // Ignore the cites this rule itself emits, which sit in the bibliography.
-      let body-end = query(bibliography).first().location().page()
-      cit-pages(query(cite)
-        .filter(c => str(c.key) == key and c.location().page() < body-end)
+    show label-marker: m => box(width: bib-hang,
+      move(dx: bib-hang - indent, text(fill: colors.main, marker-text(m))))
+    show cite-marker: m => context cit-pages(
+      query(cite).filter(c => str(c.key) == marker-text(m))
         .map(c => (counter(page).at(c.location()).first(), c.location())))
-    }
     it
   }
-  bibliography(path, title: [#strings.bibliography], style: "bib/alphanumeric.csl")
+  body
+})
+
+#let thesis-bibliography(path, web: none, indent: 18mm, web-indent: 22mm) = {
+  unnumbered-chapter(outlined: true)[#strings.bibliography]
+  set text(size: sz.small)
+  bib-entries(indent, bibliography(path, title: none, style: "bib/alphanumeric.csl"))
   if web != none {
     unnumbered-section[#strings.webpages]
-    bibliography(web, title: none, style: web-csl)
+    bib-entries(web-indent, bibliography(web, title: none, style: web-csl))
   }
 }
 

@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   biblatex `style=alphabetic` for Typst: trigraph labels via `citation-label`.
-  Field 1 and the entry tail emit the raw citation key; cleanthesis.typ swaps
-  them for the real label and the "(cf. p. N)" backrefs, and derives the
-  Webpages variant by inserting the "@" label prefix.
+  `hanging-indent` rather than `second-field-align`, which would make Typst
+  back-link the label. cleanthesis.typ fills the bracketed markers in.
 -->
 <style xmlns="http://purl.org/net/xbiblio/csl" class="in-text" version="1.0"
        demote-non-dropping-particle="sort-only" default-locale="en-US">
@@ -54,13 +53,15 @@
   </macro>
 
   <citation collapse="year" disambiguate-add-year-suffix="true">
-    <layout prefix="[" suffix="]" delimiter="; ">
-      <text variable="citation-label"/>
-      <text variable="year-suffix"/>
+    <layout delimiter=" ">
+      <group prefix="[" suffix="]">
+        <text variable="citation-label"/>
+        <text variable="year-suffix"/>
+      </group>
     </layout>
   </citation>
 
-  <bibliography entry-spacing="0" second-field-align="flush">
+  <bibliography entry-spacing="0" hanging-indent="true">
     <sort>
       <key macro="author"/>
       <key variable="title"/>
@@ -68,7 +69,10 @@
     </sort>
     <layout suffix=".">
       <group>
-        <text variable="citation-key" prefix="⟨" suffix="⟩"/>
+        <group prefix="⟪[" suffix="]⟫">
+          <text variable="citation-label"/>
+          <text variable="year-suffix"/>
+        </group>
         <group delimiter=" ">
           <group delimiter=". ">
             <text macro="author"/>
