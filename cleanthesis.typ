@@ -279,12 +279,7 @@
     if is-part(it) { return part-page(it.body) }
     let n = counter(heading).get().first()
     for k in (image, table, "listing") { counter(figure.where(kind: k)).update(0) }
-    // A chapter straight after a part page continues on the facing verso.
-    // Document order, not page numbers: the page would depend on this choice.
-    let flow = query(selector.or(heading, par))
-    let i = flow.position(e => e.location() == it.location())
-    let after-part = i != none and i > 0 and is-part(flow.at(i - 1))
-    if after-part { pagebreak(weak: true) } else { cleardoublepage() }
+    cleardoublepage()
     chapter-head(
       if it.numbering == none { none } else { heading-number((n,), ct-appendix.get()) },
       it.body,
